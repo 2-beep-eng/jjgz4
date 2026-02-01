@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>我的基金实时估值</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f7f9;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background: #fafafa;
+    }
+    .up {
+      color: #e53935;
+    }
+    .down {
+      color: #43a047;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📈 我的基金实时估值</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>基金名称</th>
+      <th>估值净值</th>
+      <th>估值涨幅</th>
+      <th>持有份额</th>
+      <th>当前市值</th>
+      <th>实时收益</th>
+    </tr>
+  </thead>
+  <tbody id="fundBody"></tbody>
+</table>
+
+<script>
+/**
+ * 你自己的基金配置
+ */
+const funds = [
+  {
+    code: "161725",
+    name: "招商中证白酒",
+    shares: 1000,
+    cost: 1.20
+  },
+  {
+    code: "005918",
+    name: "天弘沪深300",
+    shares: 800,
+    cost: 1.45
+  }
+];
+
+async function fetchFund(code) {
+  const url = `https://fundgz.1234567.com.cn/js/${code}.js`;
+  const res = await fetch(url);
+  const text = await res.text();
+
+  // 接口是 js 包裹的，需要手动解析
+  const json = JSON.parse(
+    text.replace("jsonpgz(", "").replace(");", "")
+  );
+  return json;
+}
+
+async function render() {
+  const tbody = document.getElementById("fundBody");
+  tbody.innerHTML = "";
+
+  for (const fund of funds) {
+    const data = await fetchFund(fund.code);
+
+    const nav = parseFloat(data.gsz);       // 估值净值
+    const rate = parseFloat(data.gszzl);    // 涨跌幅
+    const value = nav * fund.shares;
+    const profit = (nav - fund.cost) * fund.shares;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fund.name}</td>
+      <td>${nav.toFixed(4)}</td>
+      <td class="${rate >= 0 ? 'up' : 'down'}">
+        ${rate}%
+      </td>
+      <td>${fund.shares}</td>
+      <td>${value.toFixed(2)}</td>
+      <td class="${profit >= 0 ? 'up' : 'down'}">
+        ${profit.toFixed(2)}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// 初始加载
+render();
+
+// 每 30 秒自动刷新
+setInterval(render, 30000);
+</script>
+
+</body>
+</html>
